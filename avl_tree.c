@@ -14,7 +14,6 @@ static inline node* avl_create (data_t data) {
 	node* ret = (node*) calloc(1, sizeof (struct node));
 	if (!ret) {
 		avl_errno = no_mem;
-		printf ("\n\n&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n\n");
 		return NULL;
 	}
 	ret -> data = data;
@@ -132,6 +131,32 @@ static node* avl_balance (node* tree) {
 	return tree;
 }
 
+static node* avl_get_min (node* tree) {
+	if (!tree) {
+		avl_errno = null_ptr;
+		return NULL;
+	}
+	if (!tree -> child [left])
+		return tree;
+	else
+		return avl_get_min (tree -> child [left]);
+}
+
+node* avl_cut_min (node* tree) {
+	if (!tree) {
+		avl_errno = null_ptr;
+		return NULL;
+	}
+
+	if (!tree -> child [left]) {
+		return tree -> child [right];
+	}
+	else {
+		tree -> child [left] = avl_cut_min (tree -> child [left]);
+		return tree;
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // User available functions
 
@@ -148,8 +173,7 @@ node* avl_insert (node* tree, data_t data) {
 		tree -> child [right] = avl_insert (tree -> child [right], data);
 
 	avl_rep_height (ret);
-	ret = avl_balance (ret);
-	return ret;
+	return avl_balance (ret);;
 }
 
 void avl_dump (node* tree, int shift) {
@@ -157,12 +181,13 @@ void avl_dump (node* tree, int shift) {
 		printf (" ");
 
 	if (!tree) {
-		printf ("E\n");
+		//printf ("E\n");
 		return;
 	}
 
-	printf ("%u :%d\n", tree -> data, tree -> height);
-
+	//printf ("%u :%d | %x\n", tree -> data, tree -> height, tree);
+	printf ("\nL: %10x\tN: %10x | %3d\tR: %10x\n",
+			tree -> child [left], tree, tree -> data, tree -> child [right]);
 	avl_dump (tree -> child [left], shift + shft);
 	avl_dump (tree -> child [right], shift + shft);
 }
@@ -191,18 +216,42 @@ int avl_find (node* tree, data_t key) {
 		return avl_find (tree -> child [right], key);
 }
 
-/*
+node* avl_iterator (node* tree, data_t (*foo) (data_t a, data_t node_data), data_t a) {
+	if (!tree) {
+		avl_errno = null_ptr;
+		return NULL;
+	}
+	tree -> data = (*foo) (a, tree -> data);
+	tree -> child [left] = avl_iterator (tree -> child [left], (*foo), a);
+	tree -> child [right] = avl_iterator (tree -> child [right], (*foo), a);
+	return tree;
+}
+
 node* avl_remove (node* tree, data_t key) {
-	if (!tree)
-		return max_err;
+	if (!tree) {
+		avl_errno = null_ptr;
+		return NULL;
+	}
 	if (tree -> data == key) {
 		if (!tree -> child [right]) {
 			node* tmp = tree -> child [left];
 			free (tree);
 			return tmp;
-		} else {
-
 		}
-	}
+		node *tmp_left  = tree -> child [left],
+			 *tmp_right = tree -> child [right],
+			 *tmp_min = avl_get_min (tmp_right);
+
+		tmp_min -> child [right] = avl_cut_min (tmp_right);
+		tmp_min -> child [left] = tmp_left;
+		free (tree);
+		return tmp_min;
+
+	} else if (tree -> data > key)
+		tree -> child [left] = avl_remove (tree -> child [left], key);
+	else
+		tree -> child [right] = avl_remove (tree -> child [right], key);
+
+	avl_rep_height (tree);
+	return avl_balance (tree);
 }
-*/
