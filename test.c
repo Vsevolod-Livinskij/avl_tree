@@ -6,58 +6,84 @@
  */
 
 #include "avl_tree_lib.h"
+#include <stdlib.h>
+#include <stdio.h>
 
-data_t foo (data_t a, data_t node_data) {
-	return a * node_data;
+data_t foo (data_t node_data, void* a) {
+	return node_data * node_data;
 }
 
 int main() {
-	/*
-	node* overload = avl_insert (NULL, 0);
-	for (int i = 1; i < 10000; i++) {
-		overload = avl_insert (overload, i);
-	}
-	avl_dump (overload, 0);
-	for (int i = 2; i < 998; i++) {
-		overload = avl_remove (overload, i);
-	}
-	avl_dump (overload, 0);
-	avl_delete (overload);
-	*/
-	node* arr_tree [10];
-	for (int i = 0; i < 10; i++) {
-		arr_tree [i] = avl_insert (NULL, 0);
-	}
-	for (unsigned long i = 0; i < 3960054; i++) {
-		arr_tree [i % 9] = avl_insert (arr_tree [i % 9], i);
-	}
-	for (unsigned long i = 0; i < 3960; i++) {
-		arr_tree [i % 9] = avl_remove (arr_tree [i % 9], i);
+
+	head* arr [3];
+
+	for (int i = 0; i < 3; i++) {
+		arr [i] = avl_init_tree ();
 	}
 
-	node* tree = avl_insert (NULL, 500);
-	tree = avl_insert (tree, 25);
-	tree = avl_insert (tree, 5);
-	tree = avl_insert (tree, 89);
-	tree = avl_insert (tree, 450);
-	tree = avl_insert (tree, 250);
-	tree = avl_insert (tree, 258);
-	tree = avl_insert (tree, 275);
-	tree = avl_insert (tree, 175);
-	tree = avl_insert (tree, 123);
-	tree = avl_insert (tree, 2);
-	tree = avl_insert (tree, 498);
-	tree = avl_insert (tree, 466);
-	tree = avl_insert (tree, 108);
-	tree = avl_insert (tree, 357);
-	tree = avl_insert (tree, 281);
-	for (int i = 0; i < 35; i++)
-		tree = avl_remove (tree, i / 2);
-	avl_dump (tree, 0);
-	avl_find (tree, 800);
-	avl_find (tree, 5);
-	tree = avl_iterator (tree, (*foo), 2);
-	avl_delete (tree);
+	int tmp = 0;
+	for (int i = 0; i < 5000; i++) {
+		avl_insert_node (arr [i % 3], (tmp + i) % (i + 19));
+		tmp += i;
+	}
+
+	for (int i = 0; i < 3; i++) {
+		//avl_dump_tree (arr [i]);
+	}
+
+	avl_insert_node (arr [0], 0);
+	for (int i = 0; i < 100; i++) {
+		avl_find_node (arr [i % 3], i % 9);
+	}
+
+	for (int i = 0; i < 1000; i++) {
+		avl_remove_node (arr [i % 3], i);
+	}
+
+	for (int i = 0; i < 3; i++) {
+		avl_delete_tree (& arr [i]);
+	}
+
+	head* for_iter = avl_init_tree ();
+	for (int i = 0; i < 20; i++)
+		avl_insert_node (for_iter, i);
+	avl_dump_tree (for_iter);
+	avl_iterator_tree (for_iter, (*foo), NULL);
+	avl_dump_tree (for_iter);
+
+	avl_iterator_tree (NULL, (*foo), NULL);
+	avl_iterator_tree (for_iter, (NULL), NULL);
+
+	avl_delete_tree (&for_iter);
+
+	avl_insert_node (NULL, 19);
+	avl_dump_tree (NULL);
+	avl_find_node (NULL, 19);
+	avl_remove_node (NULL, 19);
+	avl_delete_tree (NULL);
+
+	head* tree = avl_init_tree ();
+	avl_insert_node (tree, 19);
+	avl_dump_tree (tree);
+	avl_find_node (tree, 19);
+	avl_remove_node (tree, 19);
+	avl_delete_tree (&tree);
+	avl_dump_tree (tree);
+	avl_delete_tree (&tree);
+
+/*
+	head* tree = avl_init_tree ();
+	int tmp = 0;
+	for (int i = 0; i < 25; i++) {
+		avl_insert_node (tree, (tmp + i) % (i + 19));
+		printf ("\ni %d | %d\n", i, (tmp + i) % (i + 19));
+		avl_dump_tree (tree);
+		tmp += i;
+		i++;
+	}
+	avl_dump_tree (tree);
+	avl_delete_tree (&tree);
+*/
 }
 
 
