@@ -22,4 +22,5 @@ void avl_delete_tree (head** head);
 int avl_find_node (head* head, data_t key);
 int avl_iterator_tree (head* head, data_t (*foo) (data_t node_data, void* a), void* a);
 int avl_remove_node (head* tree_head, data_t key);
+
 #endif /* AVL_TREE_LIB_H_ */

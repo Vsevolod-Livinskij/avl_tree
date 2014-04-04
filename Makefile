@@ -1,18 +1,18 @@
 CC=gcc
-CFLAGS=-c -Wall -O2 -std=c99 -MD -g --coverage
+CFLAGS=-c -Wall -std=c99 -g --coverage
 LDFLAGS=--coverage -g
 SOURCES=test.c avl_tree.c
+HEADERS=avl_tree_lib.h
 OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=out
-include $(wildcard *.d)
 
-all: $(SOURCES) $(EXECUTABLE)
+all: $(SOURCES) $(EXECUTABLE) $(HEADERS)
     
 $(EXECUTABLE): $(OBJECTS) 
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 
-%.o: %.c
+%.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	rm *.o out *.d *.gcno *.gcda *.gcov *~
+	rm *.o out *.gcno *.gcda *.gcov *~

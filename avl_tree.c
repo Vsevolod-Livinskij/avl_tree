@@ -10,9 +10,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <time.h>
 
 #define shft 6
-#define POISON_VAL -13666
 
 enum childs {
 	left = 0,
@@ -35,7 +35,15 @@ struct head {
 
 static inline node* avl_create (data_t data) {
 	node* ret = (node*) calloc (1, sizeof (struct node));
-//printf ("\n1) %x\n", ret);
+
+
+	srand (time(NULL));
+	if (rand() % 200 == 0 || (int) ret % 2000 == 0) {
+		free (ret);
+		ret = NULL;
+	}
+
+
 	if (!ret) {
 		errno = ENOMEM;
 		return NULL;
@@ -144,24 +152,30 @@ static node* avl_cut_min (node* tree) {
 ////////////////////////////////////////////////////////////////////////////////
 // Recursive functions
 
-static node* avl_insert (node* tree, data_t data) {
-	node* ret = tree;
-	if (!tree)
+static int avl_insert (node** tree, data_t data) {
+
+	node* ret = *tree;
+	int err_prev = 0;
+	if (!(*tree))
 		ret = avl_create (data);
-	else if (tree -> data == data) {
-		return tree;
-	} else if (tree -> data > data)
-		tree -> child [left] = avl_insert (tree -> child [left], data);
+	else if ((*tree) -> data == data) {
+		return 0;
+	} else if ((*tree) -> data > data)
+		err_prev = avl_insert (&((*tree) -> child [left]), data);
 	else
-		tree -> child [right] = avl_insert (tree -> child [right], data);
+		err_prev = avl_insert (&((*tree) -> child [right]), data);
 
 	if (!ret) {
 		errno = ENOMEM;
-		return NULL;
+		return -1;
 	}
 
-	avl_rep_height (ret);
-	return avl_balance (ret);
+	if (!err_prev) {
+		avl_rep_height (ret);
+		ret = avl_balance (ret);
+	}
+	*tree = ret;
+	return err_prev;
 }
 
 static void avl_dump (node* tree, int shift) {
@@ -173,7 +187,7 @@ static void avl_dump (node* tree, int shift) {
 		return;
 	}
 
-	printf ("%u : %d | %x\n", tree -> data, tree -> height, tree);
+	printf ("%u : %d\n", tree -> data, tree -> height);
 	//printf ("\nL: %10x\tN: %10x | %3d\tR: %10x\n",
 	//		tree -> child [left], tree, tree -> data, tree -> child [right]);
 	avl_dump (tree -> child [left], shift + shft);
@@ -181,10 +195,9 @@ static void avl_dump (node* tree, int shift) {
 }
 
 static void avl_delete (node* tree) {
-	if (!tree) {
-		errno = EBADF;
+	if (!tree) 
 		return;
-	}
+		
 	avl_delete (tree -> child [left]);
 	tree -> child [left] = NULL;
 	avl_delete (tree -> child [right]);
@@ -206,7 +219,6 @@ static int avl_find (node* tree, data_t key) {
 
 static node* avl_iterator (node* tree, data_t (*foo) (data_t node_data, void* a), void* a) {
 	if (!tree) {
-		errno = EBADF;
 		return NULL;
 	}
 	tree -> data = (*foo) (tree -> data, a);
@@ -215,16 +227,16 @@ static node* avl_iterator (node* tree, data_t (*foo) (data_t node_data, void* a)
 	return tree;
 }
 
-static node* avl_remove (node* tree, data_t key) {
-	if (!tree) {
-		errno = EBADF;
-		return NULL;
-	}
+static int avl_remove (node* tree, node** parent, data_t key) {
+	if (!tree || !parent)
+		return 0;
+	int err_prev;
 	if (tree -> data == key) {
 		if (!tree -> child [right]) {
 			node* tmp = tree -> child [left];
 			free (tree);
-			return tmp;
+			*parent = tmp;
+			return 0;
 		}
 		node *tmp_left  = tree -> child [left],
 			 *tmp_right = tree -> child [right],
@@ -233,15 +245,18 @@ static node* avl_remove (node* tree, data_t key) {
 		tmp_min -> child [right] = avl_cut_min (tmp_right);
 		tmp_min -> child [left] = tmp_left;
 		free (tree);
-		return tmp_min;
+		*parent = tmp_min;
+		return 0;
 
 	} else if (tree -> data > key)
-		tree -> child [left] = avl_remove (tree -> child [left], key);
+		err_prev = avl_remove (tree -> child [left], &(tree -> child [left]), key);
 	else
-		tree -> child [right] = avl_remove (tree -> child [right], key);
-
-	avl_rep_height (tree);
-	return avl_balance (tree);
+		err_prev = avl_remove (tree -> child [right], &(tree -> child [right]), key);
+	if (!err_prev) {
+		avl_rep_height (tree);
+		*parent = avl_balance (tree);
+	}
+	return err_prev;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -265,11 +280,7 @@ int avl_insert_node (head* head, data_t key)
 		return -1;
 	}
 
-	head -> tree = avl_insert (head -> tree, key);
-	if (!head -> tree)
-		return -1;
-	else
-		return 0;
+	return avl_insert (& (head -> tree), key);
 }
 
 int avl_dump_tree (head* head)
@@ -322,10 +333,13 @@ int avl_remove_node (head* head, data_t key)
 		errno = EBADF;
 		return -1;
 	}
-
-	head -> tree = avl_remove (head -> tree, key);
-	if (!head -> tree)
+	/*
+	int result = 0;
+	head -> tree = avl_remove (head -> tree, key, &result);
+	if (!head -> tree || result)
 		return -1;
 	else
 		return 0;
+	*/
+	return avl_remove (head -> tree, &(head -> tree), key);
 }
